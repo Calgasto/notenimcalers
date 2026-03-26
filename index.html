@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="ca">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>No Tenim Calers | Transparència i despesa pública de l'Ajuntament de Valls</title>
+    <meta
+      name="description"
+      content="No Tenim Calers mostra i ordena les dades oficials de transparència i despesa pública de l'Ajuntament de Valls: factures, contractes menors, ajuts, subvencions i pressupost."
+    />
+    <meta
+      name="keywords"
+      content="No Tenim Calers, notenimcalers.com, Valls, Ajuntament de Valls, transparència, despesa pública, factures, contractes menors, subvencions, pressupost"
+    />
+    <meta name="robots" content="index, follow" />
+    <meta name="author" content="No Tenim Calers" />
+    <link rel="canonical" href="https://notenimcalers.com/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="ca_ES" />
+    <meta property="og:site_name" content="No Tenim Calers" />
+    <meta property="og:title" content="No Tenim Calers | Transparència i despesa pública de l'Ajuntament de Valls" />
+    <meta
+      property="og:description"
+      content="Consulta i explora les dades oficials de transparència de l'Ajuntament de Valls: factures, contractes menors, ajuts, subvencions i pressupost."
+    />
+    <meta property="og:url" content="https://notenimcalers.com/" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="No Tenim Calers | Transparència i despesa pública de l'Ajuntament de Valls" />
+    <meta
+      name="twitter:description"
+      content="Dades oficials de transparència de l'Ajuntament de Valls, ordenades per entendre millor la despesa pública."
+    />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "No Tenim Calers",
+        "url": "https://notenimcalers.com/",
+        "inLanguage": "ca",
+        "description": "Web de consulta de les dades oficials de transparència i despesa pública de l'Ajuntament de Valls."
+      }
+    </script>
+    <link rel="stylesheet" href="styles.css?v=5" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">Transparència econòmica local</p>
+          <h1>A Valls gastem calers. De quina manera ho fem?</h1>
+          <p class="hero-slogan">A Valls mai tenim calers, perquè ens els gastem així. Amb total transparència.</p>
+          <p class="intro">
+            Aquesta web fa servir dades CSV desades en local des de
+            <a href="https://dadesobertes.valls.cat" target="_blank" rel="noreferrer">dadesobertes.valls.cat</a>
+            per mostrar factures, contractes menors, ajuts i pressupost amb una lectura molt més directa.
+          </p>
+        </div>
+        <div class="hero-stats" id="hero-stats"></div>
+      </header>
+
+      <main>
+        <section class="toolbar toolbar-grid">
+          <label class="field field-search">
+            <span>Cerca</span>
+            <input id="search-input" type="search" placeholder="Empresa, beneficiari, departament, organisme..." />
+          </label>
+          <label class="field">
+            <span>Exercici</span>
+            <select id="year-filter"></select>
+          </label>
+          <label class="field">
+            <span>Tipus</span>
+            <select id="kind-filter">
+              <option value="">Tots</option>
+              <option value="entity">Empresa o beneficiari</option>
+              <option value="department">Departament</option>
+              <option value="organization">Organisme</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Departament</span>
+            <select id="department-filter">
+              <option value="">Tots els departaments</option>
+            </select>
+          </label>
+        </section>
+
+        <section class="search-layout">
+          <article class="panel search-panel">
+            <div class="panel-head">
+              <p class="section-kicker">Cercador</p>
+              <h2>Resultats</h2>
+            </div>
+            <div id="search-results" class="result-list"></div>
+          </article>
+
+          <article class="panel detail-panel">
+            <div class="panel-head">
+              <p class="section-kicker">Detall</p>
+              <h2 id="detail-title">Escriu una cerca i selecciona un resultat</h2>
+              <p id="detail-subtitle" class="detail-subtitle">Només es carregarà el detall complet del perfil que obris.</p>
+            </div>
+
+            <section class="detail-filters">
+              <label class="field">
+                <span>Import mínim</span>
+                <input id="min-amount-filter" type="number" min="0" step="0.01" placeholder="0" />
+              </label>
+              <label class="field">
+                <span>Import màxim</span>
+                <input id="max-amount-filter" type="number" min="0" step="0.01" placeholder="Sense límit" />
+              </label>
+              <label class="field">
+                <span>Data des de</span>
+                <input id="date-from-filter" type="date" />
+              </label>
+              <label class="field">
+                <span>Data fins a</span>
+                <input id="date-to-filter" type="date" />
+              </label>
+            </section>
+
+            <div id="detail-summary" class="detail-summary"></div>
+            <section class="detail-section">
+              <div class="detail-section-head">
+                <p class="section-kicker">Despesa principal</p>
+                <h3>Factures</h3>
+              </div>
+              <div id="detail-invoice-records" class="record-list"></div>
+            </section>
+            <section class="detail-section">
+              <div class="detail-section-head">
+                <p class="section-kicker">Complementari</p>
+                <h3>Despesa de proveïdor</h3>
+              </div>
+              <div id="detail-supplier-records" class="record-list"></div>
+            </section>
+            <section class="detail-section">
+              <div class="detail-section-head">
+                <p class="section-kicker">Informatiu</p>
+                <h3>Contractes menors</h3>
+              </div>
+              <div id="detail-contract-records" class="record-list"></div>
+            </section>
+            <section class="detail-section">
+              <div class="detail-section-head">
+                <p class="section-kicker">Altres</p>
+                <h3>Ajuts, subvencions i pressupost</h3>
+              </div>
+              <div id="detail-other-records" class="record-list"></div>
+            </section>
+          </article>
+        </section>
+
+        <section class="panel concept-panel">
+          <div class="panel-head">
+            <p class="section-kicker">Cerca per conceptes</p>
+            <h2>Accions, actes i campanyes</h2>
+            <p class="detail-subtitle">Busca paraules dins del concepte o descripció dels registres, com ara “carnaval” o “calçotada”.</p>
+          </div>
+          <div class="toolbar concept-toolbar">
+            <label class="field field-search">
+              <span>Concepte</span>
+              <input id="concept-search-input" type="search" placeholder="carnaval, calçotada, cavalcada, fires..." />
+            </label>
+            <label class="field">
+              <span>Any</span>
+              <select id="concept-year-filter">
+                <option value="all">Tots</option>
+              </select>
+            </label>
+          </div>
+          <p id="concept-status" class="detail-subtitle"></p>
+          <div id="concept-results" class="record-list"></div>
+        </section>
+
+        <section class="summary-grid" id="summary-grid"></section>
+        <section class="toolbar summary-toolbar">
+          <label class="field summary-year-field">
+            <span>Resum i ranquings per anys</span>
+            <select id="year-filter-secondary"></select>
+          </label>
+        </section>
+
+        <section class="panel-grid">
+          <article class="panel">
+            <div class="panel-head">
+              <p class="section-kicker">Factures</p>
+              <h2>Empreses amb més facturació</h2>
+            </div>
+            <div id="invoice-suppliers" class="rank-list"></div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-head">
+              <p class="section-kicker">Despesa proveïdor</p>
+              <h2>Totals agregats per proveïdor</h2>
+            </div>
+            <div id="supplier-spend" class="rank-list"></div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-head">
+              <p class="section-kicker">Factures</p>
+              <h2>Departaments amb més despesa</h2>
+            </div>
+            <div id="invoice-departments" class="rank-list"></div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-head">
+              <p class="section-kicker">Contractes menors</p>
+              <h2>Empreses adjudicatàries</h2>
+            </div>
+            <div id="contract-suppliers" class="rank-list"></div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-head">
+              <p class="section-kicker">Contractes menors</p>
+              <h2>Departaments que més adjudiquen</h2>
+            </div>
+            <div id="contract-departments" class="rank-list"></div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-head">
+              <p class="section-kicker">Ajuts i subvencions</p>
+              <h2>Beneficiaris principals</h2>
+            </div>
+            <div id="grant-beneficiaries" class="rank-list"></div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-head">
+              <p class="section-kicker">Pressupost</p>
+              <h2>Partides amb més pressupost final</h2>
+            </div>
+            <div id="budget-lines" class="rank-list"></div>
+          </article>
+        </section>
+      </main>
+
+      <footer class="site-footer">
+        <div class="footer-copy">
+          <p class="section-kicker">Avís legal</p>
+          <p>
+            No Tenim Calers és un observatori independent que reorganitza i facilita la consulta de dades públiques de
+            transparència sobre despesa pública de l'Ajuntament de Valls.
+          </p>
+          <p>
+            Les dades mostrades en aquest portal provenen únicament dels fitxers CSV publicats a
+            <a href="https://dadesobertes.valls.cat" target="_blank" rel="noreferrer">dadesobertes.valls.cat</a> i es
+            presenten sense alterar-ne el contingut de base, més enllà de la seva ordenació, indexació i agrupació per
+            facilitar-ne la lectura.
+          </p>
+          <p>
+            La inclusió d'empreses, departaments, organismes o conceptes en aquesta web és el resultat d'un tractament
+            automàtic de dades obertes i no constitueix cap judici de valor. L'objectiu del portal és millorar la
+            transparència i la fiscalització de la despesa pública finançada pels contribuents.
+          </p>
+          <p>
+            Com tota font de dades obertes, els fitxers originals poden contenir errors, duplicats, omissions o
+            inconsistències d'origen. Per qualsevol consulta sobre una despesa concreta:
+            <strong>contacta amb l'Ajuntament de Valls</strong>.
+            <a href="avis-legal.html">Consulta l'avís legal complet</a>.
+          </p>
+        </div>
+        <div class="footer-contact">
+          <p><strong>E-Mail:</strong> <a href="mailto:ajuntament@valls.cat">ajuntament@valls.cat</a></p>
+          <p><strong>Telèfon:</strong> <a href="tel:+34977636010">977 636 010</a></p>
+        </div>
+      </footer>
+    </div>
+
+    <template id="summary-card-template">
+      <article class="summary-card">
+        <p class="summary-label"></p>
+        <h3 class="summary-value"></h3>
+        <p class="summary-note"></p>
+      </article>
+    </template>
+
+    <template id="rank-item-template">
+      <article class="rank-item">
+        <div class="rank-copy">
+          <p class="rank-name"></p>
+          <p class="rank-meta"></p>
+        </div>
+        <p class="rank-amount"></p>
+      </article>
+    </template>
+
+    <template id="result-item-template">
+      <button class="result-item" type="button">
+        <p class="result-kind"></p>
+        <p class="result-name"></p>
+        <p class="result-meta"></p>
+      </button>
+    </template>
+
+    <template id="record-item-template">
+      <article class="record-item">
+        <button class="record-toggle" type="button">
+          <div class="record-head">
+            <p class="record-source"></p>
+            <p class="record-amount"></p>
+          </div>
+          <p class="record-title"></p>
+          <p class="record-meta"></p>
+        </button>
+        <div class="record-details" hidden></div>
+      </article>
+    </template>
+
+    <script src="app.js?v=5"></script>
+  </body>
+</html>
