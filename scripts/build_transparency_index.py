@@ -60,6 +60,15 @@ def normalize_row(row: Dict[str, str]) -> Dict[str, str]:
     return {key: normalize_text(value) for key, value in row.items() if normalize_text(value)}
 
 
+def normalize_department_name(value: str) -> str:
+    normalized = normalize_text(value)
+    if not normalized:
+        return ""
+    normalized = re.sub(r"^\d+\s*-\s*", "", normalized)
+    normalized = re.sub(r"^\d+\s+", "", normalized)
+    return normalized.strip() or normalize_text(value)
+
+
 def ascii_signature(value: str) -> str:
     normalized = normalize_text(value).upper()
     normalized = unicodedata.normalize("NFKD", normalized).encode("ascii", "ignore").decode("ascii")
@@ -68,6 +77,36 @@ def ascii_signature(value: str) -> str:
     normalized = re.sub(r"\bA O\b", "ANO", normalized)
     normalized = "".join(char for char in normalized if char not in "AEIOU ")
     return normalized.strip()
+
+
+def grant_family_signature(value: str) -> str:
+    normalized = normalize_text(value).upper()
+    normalized = unicodedata.normalize("NFKD", normalized).encode("ascii", "ignore").decode("ascii")
+    replacements = [
+        (r"\bBEQUES\b|\bBECAS\b", "BECAS"),
+        (r"\bCURS\b|\bCURSO\b", "CURSO"),
+        (r"\bPRESTACIONS\b|\bPRESTACIONES\b", "PRESTACIONES"),
+        (r"\bECONOMIQUES\b|\bECONOMICAS\b", "ECONOMICAS"),
+        (r"\bSUBVENCIO\b|\bSUBVENCION\b|\bSUBVENCIONS\b|\bSUBVENCIONES\b", "SUBVENCIONES"),
+        (r"\bPROPIETARIS\b|\bPROPIETARIOS\b", "PROPIETARIOS"),
+        (r"\bHABITATGES\b|\bHABITATGE\b|\bVIVIENDAS\b|\bVIVIENDA\b", "VIVIENDAS"),
+        (r"\bLLOGUER\b|\bALQUILER\b", "ALQUILER"),
+        (r"\bJOVES\b|\bJOVENES\b", "JOVENES"),
+        (r"\bARRENDATARIES\b|\bARRENDATARIS\b|\bARRENDATARIAS\b|\bARRENDATARIOS\b", "ARRENDATARIOS"),
+        (r"\bREHABILITACIO\b|\bREHABILITACION\b", "REHABILITACION"),
+        (r"\bLLIBRES\b|\bLIBROS\b", "LIBROS"),
+        (r"\bMUSICA\b|\bMUSICA\b", "MUSICA"),
+        (r"\bAJUDES\b|\bAYUDAS\b", "AYUDAS"),
+        (r"\bCONVOCATORIA\b|\bCONVOCATORIA\b|\bCONVOCATORIA\b", "CONVOCATORIA"),
+        (r"\bEXERCICI\b|\bEJERCICIO\b", "EJERCICIO"),
+    ]
+    for pattern, replacement in replacements:
+        normalized = re.sub(pattern, replacement, normalized)
+    normalized = re.sub(r"\b[IVXLCDM]+\b", " ", normalized)
+    normalized = re.sub(r"\b\d+[A-Z]*\b", " ", normalized)
+    normalized = re.sub(r"[^A-Z]+", " ", normalized)
+    normalized = re.sub(r"\s+", " ", normalized).strip()
+    return ascii_signature(normalized)
 
 
 def parse_grant_amount(value: str) -> float:
@@ -107,6 +146,7 @@ def best_grant_row(rows: List[Dict[str, str]]) -> Dict[str, str]:
 
 def normalize_grant_amount(row: Dict[str, str], source_name: str) -> float:
     amount = parse_grant_amount(row.get("IMPORT", "0"))
+    raw_amount = normalize_text(row.get("IMPORT", ""))
     title = normalize_text(row.get("TITOL", "")).upper()
     beneficiary = normalize_text(row.get("BENEFICIARI", "")).upper()
 
@@ -119,7 +159,116 @@ def normalize_grant_amount(row: Dict[str, str], source_name: str) -> float:
     ):
         return amount / 100
 
+    persona_keywords = (
+        "PRESTACIONS ECON",
+        "PRESTACIONES ECON",
+        "BEQUES",
+        "BECAS",
+        "LLIBRES DE TEXT",
+        "LIBROS DE TEXTO",
+        "ALQUILER",
+        "LLOGUER",
+        "ALQUILER SOCIAL",
+        "LLOGUER SOCIAL",
+        "VIVIENDA DE ALQUILER",
+        "HABITATGE DE LLOGUER",
+        "ARRENDATARI",
+        "IBI",
+        "RESIDUOS MUNICIPALES",
+        "RESIDUS MUNICIPALS",
+        "DEPORTISTAS",
+        "DEPORTISTA",
+        "PREMIS DOLORS VIVES",
+        "PREMIOS DOLORS VIVES",
+        "ESCUELA DE MÚSICA",
+        "ESCOLA MUNICIPAL DE MÚSICA",
+        "JOVENES EMPRENDEDORES",
+        "JOVES EMPRENEDORS",
+        "ACTIVIDAD EMPRESARIAL",
+        "ACTIVITAT EMPRESARIAL",
+        "NUEVAS EMPRESAS",
+        "NOVES EMPRESES",
+        "CASCO ANTIGUO",
+        "REHABILITACIÓN DE EDIFICIOS",
+        "REHABILITACIO D EDIFICIS",
+    )
+    if beneficiary == "PERSONA FÍSICA".upper() and raw_amount.isdigit() and amount >= 1000:
+        if any(keyword in title for keyword in persona_keywords):
+            return amount / 100
+
+    if beneficiary == "G17125832 FONS CATALÀ DE COOPERACIÓ AL DESENVOLUPAMENT" and raw_amount.isdigit():
+        while amount >= 20_000:
+            amount /= 10
+        return amount
+
+    if beneficiary == "G43068634 AAEET" and raw_amount.isdigit():
+        while amount >= 20_000:
+            amount /= 10
+        return amount
+
+    if beneficiary == "Q4373004C CAMBRA OFICIAL DE COMERÇ I INDÚSTRIA DE VALLS" and raw_amount.isdigit():
+        if "VALLS OCASI" in title or "VEHICLE USAT" in title:
+            while amount >= 5_000:
+                amount /= 10
+            return amount
+        while amount >= 20_000:
+            amount /= 10
+        return amount
+
     return amount
+
+
+def build_grant_reference_maps() -> tuple[Dict[tuple[str, str], float], Dict[tuple[str, str], float]]:
+    exact_references: Dict[tuple[str, str], float] = {}
+    family_references: Dict[tuple[str, str], float] = {}
+    for path in sorted(RAW_DIR.glob("subvencions__*.csv")):
+        source_name = path.name
+        for row in read_csv(path):
+            beneficiary = normalize_text(row.get("BENEFICIARI", ""))
+            exact_signature = ascii_signature(row.get("TITOL", ""))
+            family_signature = grant_family_signature(row.get("TITOL", ""))
+            if not beneficiary or not exact_signature:
+                continue
+            amount = normalize_grant_amount(row, source_name)
+            if amount <= 0:
+                continue
+            exact_key = (beneficiary, exact_signature)
+            previous = exact_references.get(exact_key)
+            if previous is None or amount < previous:
+                exact_references[exact_key] = amount
+            if family_signature:
+                family_key = (beneficiary, family_signature)
+                previous = family_references.get(family_key)
+                if previous is None or amount < previous:
+                    family_references[family_key] = amount
+    return exact_references, family_references
+
+
+def adjust_grant_amount_with_reference(
+    row: Dict[str, str],
+    source_name: str,
+    exact_references: Dict[tuple[str, str], float],
+    family_references: Dict[tuple[str, str], float],
+) -> float:
+    amount = normalize_grant_amount(row, source_name)
+    raw_amount = normalize_text(row.get("IMPORT", ""))
+    if not raw_amount.isdigit():
+        return amount
+
+    beneficiary = normalize_text(row.get("BENEFICIARI", ""))
+    title_signature = ascii_signature(row.get("TITOL", ""))
+    family_signature = grant_family_signature(row.get("TITOL", ""))
+    reference = exact_references.get((beneficiary, title_signature)) or family_references.get((beneficiary, family_signature))
+    if not reference or reference <= 0 or amount <= 0:
+        if beneficiary == "G17125832 FONS CATALÀ DE COOPERACIÓ AL DESENVOLUPAMENT" and amount >= 100_000:
+            while amount >= 20_000:
+                amount /= 10
+        return amount
+
+    adjusted = amount
+    while adjusted >= reference * 9.5:
+        adjusted /= 10
+    return adjusted
 
 
 def profile_id(kind: str, name: str) -> str:
@@ -325,6 +474,7 @@ def build() -> dict:
 
     profiles: Dict[str, Dict] = {}
     concept_records: List[Dict] = []
+    exact_grant_references, family_grant_references = build_grant_reference_maps()
 
     for path in sorted(RAW_DIR.glob("*.csv")):
         name = path.name
@@ -336,7 +486,7 @@ def build() -> dict:
             for row in read_csv(path):
                 amount = parse_amount(row.get("IMPORT_TOTAL", "0"))
                 supplier = normalize_text(row.get("PROVEIDOR", ""))
-                department = normalize_text(row.get("DEPARTAMENT", ""))
+                department = normalize_department_name(row.get("DEPARTAMENT", ""))
                 organization = normalize_text(row.get("NOM_ENS", ""))
                 status = normalize_text(row.get("ESTAT_FACTURA", ""))
                 is_cancelled = "cancel" in status.lower()
@@ -491,7 +641,7 @@ def build() -> dict:
             for row in read_csv(path):
                 amount = parse_amount(row.get("IMPORT", "0"))
                 supplier = normalize_text(row.get("NOM_ADJ", ""))
-                department = normalize_text(row.get("DEPARTAMENT", ""))
+                department = normalize_department_name(row.get("DEPARTAMENT", ""))
                 contract_type = normalize_text(row.get("TIPUS", ""))
                 organization = normalize_text(row.get("NOM_ENS", ""))
 
@@ -572,18 +722,32 @@ def build() -> dict:
             for row in read_csv(path):
                 beneficiary = normalize_text(row.get("BENEFICIARI", ""))
                 organization = normalize_text(row.get("NOM_ENS", ""))
+                normalized_amount = adjust_grant_amount_with_reference(
+                    row,
+                    name,
+                    exact_grant_references,
+                    family_grant_references,
+                )
                 signature = (
                     normalize_text((row.get("DATA_DE_CONCESSIO") or "")[:10]),
                     beneficiary,
                     organization,
                     ascii_signature(row.get("TITOL", "")),
-                    grant_amount_signature(row.get("IMPORT", "")),
+                    f"{normalized_amount:.2f}",
                 )
                 grant_groups[signature].append(row)
 
             for rows in grant_groups.values():
                 row = best_grant_row(rows)
-                amount = min(normalize_grant_amount(candidate, name) for candidate in rows)
+                amount = min(
+                    adjust_grant_amount_with_reference(
+                        candidate,
+                        name,
+                        exact_grant_references,
+                        family_grant_references,
+                    )
+                    for candidate in rows
+                )
                 beneficiary = normalize_text(row.get("BENEFICIARI", ""))
                 organization = normalize_text(row.get("NOM_ENS", ""))
 
@@ -640,7 +804,7 @@ def build() -> dict:
                 initial = parse_amount(row.get("PRV_INI", "0"))
                 final = parse_amount(row.get("PRV_DEF", "0"))
                 available = parse_amount(row.get("DISPONIBLE", "0"))
-                department = normalize_text(row.get("COD_ORGANIC", ""))
+                department = normalize_department_name(row.get("COD_ORGANIC", ""))
                 description = normalize_text(row.get("DES_PARTIDA", ""))
                 organization = normalize_text(row.get("NOM_ENS", ""))
 
