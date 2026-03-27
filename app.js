@@ -692,22 +692,22 @@ function bindEvents() {
     render();
   });
 
-  minAmountFilter.addEventListener("input", (event) => {
+  minAmountFilter?.addEventListener("input", (event) => {
     state.minAmount = event.target.value;
     renderDetail();
   });
 
-  maxAmountFilter.addEventListener("input", (event) => {
+  maxAmountFilter?.addEventListener("input", (event) => {
     state.maxAmount = event.target.value;
     renderDetail();
   });
 
-  dateFromFilter.addEventListener("input", (event) => {
+  dateFromFilter?.addEventListener("input", (event) => {
     state.dateFrom = event.target.value;
     renderDetail();
   });
 
-  dateToFilter.addEventListener("input", (event) => {
+  dateToFilter?.addEventListener("input", (event) => {
     state.dateTo = event.target.value;
     renderDetail();
   });
