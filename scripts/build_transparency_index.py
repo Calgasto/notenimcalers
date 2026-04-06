@@ -64,9 +64,14 @@ def normalize_department_name(value: str) -> str:
     normalized = normalize_text(value)
     if not normalized:
         return ""
+    if re.fullmatch(r"\d+", normalized):
+        return "No definit"
     normalized = re.sub(r"^\d+\s*-\s*", "", normalized)
     normalized = re.sub(r"^\d+\s+", "", normalized)
-    return normalized.strip() or normalize_text(value)
+    normalized = normalized.strip() or normalize_text(value)
+    if re.fullmatch(r"\d+", normalized):
+        return "No definit"
+    return normalized
 
 
 def ascii_signature(value: str) -> str:

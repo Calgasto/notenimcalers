@@ -61,7 +61,7 @@ const sections = {
 
 console.log(
   [
-    "No Tenim Calers",
+    "Com Gastem a Valls",
     "Si t'han pagat per tocar aquesta web, tranquil.",
     "Tard o d'hora el teu treball tambe acabara sortint en una llista.",
     "Moltes gracies!",
